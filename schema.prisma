@@ -1,0 +1,105 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "sqlite"; url = env("DATABASE_URL") }
+
+model Farm {
+  id      String  @id @default(cuid())
+  name    String  @default("HAMZA'S ORGANIC FARM")
+  flocks  Flock[]
+  expenses Expense[]
+  incomes Income[]
+}
+model User {
+  id String @id @default(cuid())
+  username String @unique
+  passwordHash String
+  role String // FOUNDER | ADMIN
+  active Boolean @default(true)
+  passwordChanged Boolean @default(false)
+  failedLogins Int @default(0)
+  lockedUntil DateTime?
+  lastLoginAt DateTime?
+  createdAt DateTime @default(now())
+  sessions Session[]
+}
+model Session {
+  id String @id // sha256 of token
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([userId])
+}
+model Flock {
+  id String @id @default(cuid())
+  code String @unique
+  farmId String
+  farm Farm @relation(fields: [farmId], references: [id])
+  batchName String
+  birdType String // PULLET|LAYER|BROILER|NOILER|LOCAL|OTHER
+  breed String?
+  supplier String?
+  startQty Int
+  startCost Float @default(0)
+  hatchDate DateTime?
+  arrivalDate DateTime
+  status String @default("ACTIVE")
+  notes String?
+  deletedAt DateTime?
+  records FlockDailyRecord[]
+  expenses Expense[]
+  incomes Income[]
+  @@index([farmId, status])
+}
+model FlockDailyRecord {
+  id String @id @default(cuid())
+  flockId String
+  flock Flock @relation(fields: [flockId], references: [id])
+  date DateTime
+  deaths Int @default(0)
+  culled Int @default(0)
+  sold Int @default(0)
+  feedKg Float @default(0)
+  avgWeightKg Float?
+  eggsCollected Int @default(0)
+  notes String?
+  @@index([flockId, date])
+}
+model Expense {
+  id String @id @default(cuid())
+  farmId String
+  farm Farm @relation(fields: [farmId], references: [id])
+  flockId String?
+  flock Flock? @relation(fields: [flockId], references: [id])
+  date DateTime
+  category String
+  description String
+  amount Float
+  paymentMethod String?
+  deletedAt DateTime?
+  @@index([date]) @@index([flockId])
+}
+model Income {
+  id String @id @default(cuid())
+  farmId String
+  farm Farm @relation(fields: [farmId], references: [id])
+  flockId String?
+  flock Flock? @relation(fields: [flockId], references: [id])
+  date DateTime
+  product String
+  quantity Int
+  unitPrice Float
+  customer String?
+  paymentStatus String @default("PAID")
+  deletedAt DateTime?
+  @@index([date]) @@index([flockId])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  userId String?
+  action String
+  entity String?
+  entityId String?
+  description String?
+  ip String?
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}
